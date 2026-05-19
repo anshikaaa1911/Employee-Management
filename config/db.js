@@ -6,8 +6,7 @@ dotenv.config();
 
 const connectToMongo = async (uri) => {
   await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+    serverSelectionTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS) || 5000
   });
 };
 
@@ -23,10 +22,16 @@ module.exports = async function connectDb() {
     }
     console.warn('MongoDB connection failed:', error.message);
     console.warn('Starting in-memory MongoDB fallback server.');
-    const memoryServer = await MongoMemoryServer.create();
-    const memoryUri = memoryServer.getUri();
-    await connectToMongo(memoryUri);
-    console.log('Connected to in-memory MongoDB server');
-    return memoryUri;
+    try {
+      const memoryServer = await MongoMemoryServer.create();
+      const memoryUri = memoryServer.getUri();
+      await connectToMongo(memoryUri);
+      console.log('Connected to in-memory MongoDB server');
+      return memoryUri;
+    } catch (memoryError) {
+      console.error('In-memory MongoDB fallback failed:', memoryError.message);
+      console.error('Start MongoDB locally or set MONGO_URI to a MongoDB Atlas connection string.');
+      throw memoryError;
+    }
   }
 };

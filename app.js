@@ -52,8 +52,16 @@ const initializeApp = async () => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Stop the other process or set PORT to another value in .env.`);
+      process.exit(1);
+    }
+    throw error;
   });
 };
 
