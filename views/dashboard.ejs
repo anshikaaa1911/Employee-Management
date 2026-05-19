@@ -1,0 +1,80 @@
+<%- include('partials/head', { title: 'Dashboard' }) %>
+<%- include('partials/navbar') %>
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-lg-3">
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5>Welcome, <%= user.name %></h5>
+          <p class="text-muted">Role: <strong><%= user.role %></strong></p>
+          <p>Active phase: <strong><%= activePhase %></strong></p>
+          <a href="/reports" class="btn btn-outline-primary btn-sm mb-2">View Reports</a>
+          <% if (user.role === 'employee') { %>
+            <a href="/employee/goals" class="btn btn-primary btn-sm">My Goals</a>
+          <% } %>
+          <% if (user.role === 'manager') { %>
+            <a href="/manager/team-goals" class="btn btn-primary btn-sm">Team Goals</a>
+          <% } %>
+          <% if (user.role === 'admin') { %>
+            <a href="/admin/users" class="btn btn-primary btn-sm">Admin Panel</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-9">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="card shadow-sm text-white bg-primary h-100">
+            <div class="card-body">
+              <h6>Goals</h6>
+              <h2><%= counts.goals %></h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm text-white bg-success h-100">
+            <div class="card-body">
+              <h6>Approved</h6>
+              <h2><%= counts.approvals %></h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm text-white bg-info h-100">
+            <div class="card-body">
+              <h6>Shared Goals</h6>
+              <h2><%= counts.shared %></h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 card shadow-sm">
+        <div class="card-body">
+          <h5>Recent Goals</h5>
+          <% if (goals.length === 0) { %>
+            <p class="text-muted">No goals yet. Create one to start tracking.</p>
+          <% } else { %>
+            <div class="list-group">
+              <% goals.slice(0, 5).forEach((goal) => { %>
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <h6><%= goal.title %></h6>
+                      <p class="mb-1"><%= goal.description %></p>
+                      <span class="badge bg-secondary"><%= goal.status %></span>
+                      <span class="badge bg-warning text-dark"><%= goal.approvalStatus %></span>
+                    </div>
+                    <div class="text-end">
+                      <span class="text-muted">Weight <%= goal.weightage %>%</span>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

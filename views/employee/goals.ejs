@@ -1,0 +1,49 @@
+<%- include('../partials/head', { title: 'My Goals' }) %>
+<%- include('../partials/navbar') %>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>My Goals</h2>
+    <a href="/employee/goals/new" class="btn btn-primary btn-sm">New Goal</a>
+  </div>
+  <% if (messages && messages.length > 0) { %>
+    <div class="alert alert-warning"><%= messages[0] %></div>
+  <% } %>
+  <div class="row">
+    <% goals.forEach((goal) => { %>
+      <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5><%= goal.title %></h5>
+            <p class="text-muted"><%= goal.thrustArea %> • <%= goal.uomType %></p>
+            <div class="mb-2">
+              <div class="progress" style="height: 7px;">
+                <div class="progress-bar" role="progressbar" style="width: <%= goal.progress %>%" aria-valuenow="<%= goal.progress %>" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <small><%= goal.progress %>% complete</small>
+            </div>
+            <p><strong>Target:</strong> <%= goal.target %> • <strong>Achievement:</strong> <%= goal.achievement %></p>
+            <p><strong>Status:</strong> <span class="badge bg-info"><%= goal.status %></span>
+              <strong>Approval:</strong> <span class="badge bg-secondary"><%= goal.approvalStatus %></span>
+            </p>
+            <p><strong>Weight:</strong> <%= goal.weightage %>%</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <% if (!goal.isLocked && goal.approvalStatus !== 'Approved') { %>
+                <a href="/employee/goals/<%= goal._id %>/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                <form method="POST" action="/employee/goals/<%= goal._id %>/submit" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-success">Submit</button>
+                </form>
+              <% } %>
+              <% if (['Q1 Check-in', 'Q2 Check-in', 'Q3 Check-in', 'Q4 Final Check-in'].includes(activePhase)) { %>
+                <form method="POST" action="/employee/goals/<%= goal._id %>/achievement" class="d-flex gap-2">
+                  <input type="number" name="achievement" class="form-control form-control-sm" placeholder="Achievement" value="<%= goal.achievement %>" required />
+                  <button type="submit" class="btn btn-sm btn-outline-success">Update</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,63 @@
+const express = require('express');
+const path = require('path');
+const morgan = require('morgan');
+const cors = require('cors');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const dbConnect = require('./config/db');
+const ensureSeedData = require('./config/seedData');
+const authRoutes = require('./routes/api/authRoutes');
+const goalRoutes = require('./routes/api/goalRoutes');
+const managerRoutes = require('./routes/api/managerRoutes');
+const adminRoutes = require('./routes/api/adminRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const initializeApp = async () => {
+  if (isProduction && !process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET must be set in production.');
+  }
+
+  await dbConnect();
+
+  if (!isProduction || process.env.ALLOW_DEMO_SEED === 'true') {
+    await ensureSeedData();
+  }
+
+  app.use('/api/auth', authRoutes);
+  app.use('/api/goals', goalRoutes);
+  app.use('/api/manager', managerRoutes);
+  app.use('/api/admin', adminRoutes);
+  app.use('/api/reports', require('./routes/api/reportRoutes'));
+
+  app.use('/api', (err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  });
+
+  const clientDist = path.join(__dirname, 'client', 'dist');
+  app.use(express.static(clientDist));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+};
+
+initializeApp().catch((error) => {
+  console.error('Failed to start application:', error);
+  process.exit(1);
+});

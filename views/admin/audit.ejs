@@ -1,0 +1,36 @@
+<%- include('../partials/head', { title: 'Audit Logs' }) %>
+<%- include('../partials/navbar') %>
+<div class="container py-4">
+  <h2>Audit Trail</h2>
+  <div class="table-responsive mt-3">
+    <table class="table table-striped table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>When</th>
+          <th>User</th>
+          <th>Action</th>
+          <th>Details</th>
+          <th>Unlock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% logs.forEach((log) => { %>
+          <tr>
+            <td><%= new Date(log.timestamp).toLocaleString() %></td>
+            <td><%= log.userId?.name || 'Unknown' %></td>
+            <td><%= log.action %></td>
+            <td><pre class="mb-0"><%= JSON.stringify({oldValue: log.oldValue, newValue: log.newValue}, null, 2) %></pre></td>
+            <td>
+              <% if (log.action === 'Approved goal' && log.newValue?.isLocked) { %>
+                <form method="POST" action="/admin/goals/<%= log.newValue._id %>/unlock">
+                  <button type="submit" class="btn btn-sm btn-outline-warning">Unlock</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('../partials/footer') %>

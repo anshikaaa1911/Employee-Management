@@ -1,0 +1,38 @@
+<%- include('partials/head', { title: 'Reports' }) %>
+<%- include('partials/navbar') %>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Reports</h2>
+    <div>
+      <a href="/download/csv" class="btn btn-outline-secondary btn-sm me-2">Download CSV</a>
+      <a href="/download/excel" class="btn btn-outline-secondary btn-sm">Download Excel</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>Employee</th>
+          <th>Goal</th>
+          <th>Target</th>
+          <th>Achievement</th>
+          <th>Progress</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% goals.forEach((goal) => { %>
+          <tr>
+            <td><%= goal.employeeId?.name || 'Unknown' %></td>
+            <td><%= goal.title %></td>
+            <td><%= goal.target %></td>
+            <td><%= goal.achievement %></td>
+            <td><%= goal.progress || 0 %>%</td>
+            <td><%= goal.status %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('partials/footer') %>

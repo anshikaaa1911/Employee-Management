@@ -1,0 +1,48 @@
+<%- include('../partials/head', { title: 'Edit Goal' }) %>
+<%- include('../partials/navbar') %>
+<div class="container py-4">
+  <div class="card shadow-sm mx-auto" style="max-width: 720px;">
+    <div class="card-body">
+      <h3 class="card-title mb-3">Edit Goal</h3>
+      <% if (error && error.length > 0) { %>
+        <div class="alert alert-danger"><%= error[0] %></div>
+      <% } %>
+      <form method="POST" action="/employee/goals/<%= goal._id %>/edit">
+        <div class="mb-3">
+          <label class="form-label">Goal Title</label>
+          <input name="title" class="form-control" value="<%= goal.title %>" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3"><%= goal.description %></textarea>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Thrust Area</label>
+            <input name="thrustArea" class="form-control" value="<%= goal.thrustArea %>" required />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">UOM Type</label>
+            <select name="uomType" class="form-select" required>
+              <option value="Min" <%= goal.uomType === 'Min' ? 'selected' : '' %>>Min</option>
+              <option value="Max" <%= goal.uomType === 'Max' ? 'selected' : '' %>>Max</option>
+              <option value="Zero" <%= goal.uomType === 'Zero' ? 'selected' : '' %>>Zero</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Target</label>
+            <input name="target" type="number" class="form-control" value="<%= goal.target %>" required />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Weightage (%)</label>
+            <input name="weightage" type="number" class="form-control" value="<%= goal.weightage %>" required min="10" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Goal</button>
+      </form>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

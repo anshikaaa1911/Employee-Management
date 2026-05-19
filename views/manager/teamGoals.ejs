@@ -1,0 +1,38 @@
+<%- include('../partials/head', { title: 'Team Goals' }) %>
+<%- include('../partials/navbar') %>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Team Goals</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>Employee</th>
+          <th>Goal</th>
+          <th>Target</th>
+          <th>Achievement</th>
+          <th>Status</th>
+          <th>Approval</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% goals.forEach((goal) => { %>
+          <tr>
+            <td><%= goal.employeeId?.name || 'Unknown' %></td>
+            <td><%= goal.title %></td>
+            <td><%= goal.target %></td>
+            <td><%= goal.achievement %></td>
+            <td><%= goal.status %></td>
+            <td><%= goal.approvalStatus %></td>
+            <td>
+              <a href="/manager/goals/<%= goal._id %>/review" class="btn btn-sm btn-outline-primary">Review</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('../partials/footer') %>
