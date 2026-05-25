@@ -41,19 +41,27 @@ copy .env.example .env
 
 Use a strong unique `JWT_SECRET` before deploying. Demo seed data and the in-memory MongoDB fallback are development conveniences; production only enables them when `ALLOW_DEMO_SEED=true` or `ALLOW_MEMORY_DB=true`.
 
-4. Seed the database with demo users and a sample goal:
+4. Verify the database connection:
+
+```bash
+npm run db:check
+```
+
+On Windows PowerShell, use `npm.cmd run db:check` if script execution policy blocks `npm`.
+
+5. Seed the database with demo users and a sample goal:
 
 ```bash
 npm run seed
 ```
 
-5. Start the app in development mode:
+6. Start the app in development mode:
 
 ```bash
 npm run dev
 ```
 
-6. Open the app on the port in `.env`, for example `http://localhost:3001`.
+7. Open the app on the port in `.env`, for example `http://localhost:3001`.
 
 The app runs through Node/Express only. If you change files in `client/src`, run `npm run build` again so Express can serve the updated frontend from `client/dist`.
 
@@ -67,6 +75,8 @@ PowerShell commands to find and stop the process:
 netstat -ano | Select-String ':3000'
 Stop-Process -Id <PID>
 ```
+
+If MongoDB is not installed locally, keep `ALLOW_MEMORY_DB=true` for demo mode. The app will first try `MONGO_URI`, then start an in-memory MongoDB instance and print `Connected to in-memory MongoDB server`. For a persistent database, install MongoDB locally or use MongoDB Atlas, set `MONGO_URI`, and change `ALLOW_MEMORY_DB=false`.
 
 ## Production
 

@@ -18,6 +18,7 @@ ENV/
 .vscode/
 *.swp
 *.swo
+*.log
 
 # Database files
 *.db

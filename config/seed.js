@@ -1,39 +1,16 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const User = require('../models/user');
 const Goal = require('../models/goal');
 const AuditLog = require('../models/auditLog');
+const connectDb = require('./db');
 
 dotenv.config();
 
-const connectToMongo = async (uri) => {
-  await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
-};
-
-const getMongoUri = async () => {
-  const envUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/employee_goal_portal';
-  try {
-    await connectToMongo(envUri);
-    console.log('Connected to MongoDB at', envUri);
-    return envUri;
-  } catch (error) {
-    console.warn('MongoDB connection failed:', error.message);
-    console.warn('Falling back to in-memory MongoDB for seeding.');
-    const memoryServer = await MongoMemoryServer.create();
-    const memoryUri = memoryServer.getUri();
-    await connectToMongo(memoryUri);
-    console.log('Connected to in-memory MongoDB server');
-    return memoryUri;
-  }
-};
-
 async function seed() {
-  await getMongoUri();
+  const connection = await connectDb();
+  console.log(`Seeding database in ${connection.mode} mode.`);
 
   await User.deleteMany({});
   await Goal.deleteMany({});
@@ -83,6 +60,8 @@ async function seed() {
   });
 
   console.log('Seed data created');
+  await mongoose.disconnect();
+  await connectDb.stopMemoryServer();
   process.exit(0);
 }
 
