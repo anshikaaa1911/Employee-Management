@@ -13,7 +13,7 @@ A modern MERN-style employee goal platform with a React frontend and Express API
 
 ## Tech Stack
 
-- React + Vite
+- React SPA served by Express
 - Express.js API
 - MongoDB + Mongoose
 - JWT authentication
@@ -27,10 +27,10 @@ A modern MERN-style employee goal platform with a React frontend and Express API
 npm install
 ```
 
-2. Install client dependencies:
+2. Build the frontend:
 
 ```bash
-cd client && npm install
+npm run build
 ```
 
 3. Copy `.env.example` to `.env` and update values if needed:
@@ -53,7 +53,20 @@ npm run seed
 npm run dev
 ```
 
-6. Open the React app at `http://localhost:5173`. The API runs on `http://localhost:3000`.
+6. Open the app on the port in `.env`, for example `http://localhost:3001`.
+
+The app runs through Node/Express only. If you change files in `client/src`, run `npm run build` again so Express can serve the updated frontend from `client/dist`.
+
+## Troubleshooting
+
+If Nodemon prints `app crashed - waiting for file changes before starting`, check the line above it. For `Port 3000 is already in use`, either stop the other Node process or change `PORT` in `.env` to another free port such as `3001`.
+
+PowerShell commands to find and stop the process:
+
+```powershell
+netstat -ano | Select-String ':3000'
+Stop-Process -Id <PID>
+```
 
 ## Production
 
@@ -64,7 +77,7 @@ npm run build
 npm start
 ```
 
-Then visit `http://localhost:3000`.
+Then visit the port configured in `.env` or by your hosting provider.
 
 ## Demo Accounts
 
