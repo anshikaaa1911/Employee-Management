@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: employee-management
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://employee-management-0cu9.onrender.com/

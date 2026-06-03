@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const morgan = require('morgan');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -16,6 +17,7 @@ const adminRoutes = require('./routes/api/adminRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+const APP_URL = process.env.APP_URL || (isProduction ? 'https://employee-management-0cu9.onrender.com/' : `http://localhost:${PORT}`);
 
 app.use(cors());
 app.use(express.json());
@@ -44,7 +46,9 @@ const initializeApp = async () => {
     res.status(500).json({ error: 'Something went wrong.' });
   });
 
-  const clientDist = path.join(__dirname, 'client', 'dist');
+  const clientDist = fs.existsSync(path.join(process.cwd(), 'client', 'dist'))
+    ? path.join(process.cwd(), 'client', 'dist')
+    : path.join(__dirname, 'client', 'dist');
   app.use(express.static(clientDist));
 
   app.get('*', (req, res) => {
@@ -52,7 +56,7 @@ const initializeApp = async () => {
   });
 
   const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on ${APP_URL}`);
   });
 
   server.on('error', (error) => {

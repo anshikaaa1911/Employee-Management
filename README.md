@@ -87,7 +87,7 @@ npm run build
 npm start
 ```
 
-Then visit the port configured in `.env` or by your hosting provider.
+Then visit the deployed app at `https://employee-management-0cu9.onrender.com/`, or the port configured in `.env` or by your hosting provider for local production runs.
 
 ## Demo Accounts
 
