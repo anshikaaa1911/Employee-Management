@@ -22,3 +22,19 @@ A modern MERN-style employee goal platform with a React frontend and Express API
 ## Production
 
  Deployed app at `https://employee-management-0cu9.onrender.com/`, or the port configured in `.env` or by your hosting provider for local production runs.
+
+## DEMO ACCOUNTS
+
+Demo accounts are:
+
+Admin:
+email: admin@test.com
+password: 123456
+
+Manager:
+email: manager@test.com
+password: 123456
+
+Employee:
+email: employee@test.com
+password: 123456
