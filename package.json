@@ -4,6 +4,7 @@
   "description": "Employee goal planning portal with a React frontend and Express API backend",
   "main": "app.js",
   "scripts": {
+    "prestart": "node scripts/ensureClientBuild.js",
     "start": "node app.js",
     "server": "nodemon app.js",
     "dev": "nodemon app.js",
