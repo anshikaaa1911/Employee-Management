@@ -18,6 +18,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 const APP_URL = process.env.APP_URL || (isProduction ? 'https://employee-management-0cu9.onrender.com/' : `http://localhost:${PORT}`);
+const clientDist = path.join(__dirname, 'client', 'dist');
+const clientIndex = path.join(clientDist, 'index.html');
 
 app.use(cors());
 app.use(express.json());
@@ -41,18 +43,27 @@ const initializeApp = async () => {
   app.use('/api/admin', adminRoutes);
   app.use('/api/reports', require('./routes/api/reportRoutes'));
 
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      frontend: fs.existsSync(clientIndex) ? 'ready' : 'missing',
+    });
+  });
+
   app.use('/api', (err, req, res, next) => {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong.' });
   });
 
-  const clientDist = fs.existsSync(path.join(process.cwd(), 'client', 'dist'))
-    ? path.join(process.cwd(), 'client', 'dist')
-    : path.join(__dirname, 'client', 'dist');
+  console.log(`Serving frontend from ${clientDist}`);
   app.use(express.static(clientDist));
 
   app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
+    if (!fs.existsSync(clientIndex)) {
+      return res.status(404).send('Frontend build not found. Run npm run build before starting the server.');
+    }
+
+    return res.sendFile(clientIndex);
   });
 
   const server = app.listen(PORT, () => {
