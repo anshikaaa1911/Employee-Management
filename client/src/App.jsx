@@ -117,10 +117,36 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      <PortalFooter />
       <ToastStack toasts={toasts} />
     </div>
   );
 };
+
+const PortalFooter = () => (
+  <footer className="portal-footer">
+    <div>
+      <strong>GoalFlow</strong>
+      <p>Enterprise team management and goal tracking workspace.</p>
+    </div>
+    <div>
+      <strong>Quick links</strong>
+      <Link to="/">Dashboard</Link>
+      <Link to="/reports">Reports</Link>
+    </div>
+    <div>
+      <strong>Support</strong>
+      <span>Help desk</span>
+      <span>Security</span>
+    </div>
+    <div>
+      <strong>Resources</strong>
+      <span>Version 1.0.0</span>
+      <span>System online</span>
+      <span>Updated 2026-06-14</span>
+    </div>
+  </footer>
+);
 
 const RequireAuth = ({ user, allowedRoles = [], children }) => {
   if (!user) {
@@ -134,7 +160,7 @@ const RequireAuth = ({ user, allowedRoles = [], children }) => {
 
 const priorities = ['High', 'Medium', 'Low'];
 const categories = ['Productivity', 'Learning', 'Teamwork', 'Innovation'];
-const statuses = ['Not Started', 'On Track', 'Completed'];
+const statuses = ['Not Started', 'In Progress', 'Under Review', 'Completed', 'Overdue', 'On Track'];
 
 const getProgress = (goal) => Number(goal.progress ?? goal.progressPercentage ?? 0);
 
@@ -469,10 +495,10 @@ const DashboardPage = ({ user, notify }) => {
   if (user?.role === 'manager' || user?.role === 'admin') {
     return <ManagerPage user={user} notify={notify} compact />;
   }
-  return <EmployeeDashboard user={user} />;
+  return <EmployeeDashboard user={user} notify={notify} />;
 };
 
-const EmployeeDashboard = ({ user }) => {
+const EmployeeDashboard = ({ user, notify }) => {
   const [goals, setGoals] = useState([]);
   const [activities, setActivities] = useState([]);
   const [notifications, setNotifications] = useState({ notifications: [], unreadCount: 0 });
@@ -552,7 +578,7 @@ const EmployeeDashboard = ({ user }) => {
               </div>
             )) : <EmptyState title="No notifications" text="Approval updates and deadline warnings will appear here." />}
           </div>
-          <TeamWorkspace user={user} notify={() => {}} />
+          <TeamWorkspace user={user} notify={notify} />
         </>
       )}
     </section>
@@ -1187,6 +1213,7 @@ const ManagerPage = ({ user, notify, compact = false }) => {
       {loading ? <SkeletonBlock lines={6} /> : (
         <>
           <KpiCards stats={stats} extra={managerExtras} />
+          <TeamWorkspace user={user} notify={notify} compact={compact} />
           {!compact && (
             <div className="grid-two">
               <BarChart title="Department performance overview" data={departmentData} />

@@ -9,7 +9,7 @@ const clampProgress = (value) => Math.min(100, Math.max(0, Math.round(Number(val
 
 const getStatusFromProgress = (progress) => {
   if (progress >= 100) return 'Completed';
-  if (progress > 0) return 'On Track';
+  if (progress > 0) return 'In Progress';
   return 'Not Started';
 };
 
@@ -140,6 +140,7 @@ exports.submitGoal = async (req, res) => {
     return res.status(400).json({ error: 'Total weightage must equal 100% before submission.' });
   }
   goal.approvalStatus = 'Pending';
+  goal.status = 'Under Review';
   goal.phase = getActivePhase();
   await goal.save();
   await AuditLog.create({ userId: req.user._id, action: 'Submitted goal', oldValue: null, newValue: goal.toObject() });

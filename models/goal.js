@@ -14,7 +14,7 @@ const goalSchema = new mongoose.Schema({
   category: { type: String, enum: ['Productivity', 'Learning', 'Teamwork', 'Innovation'], default: 'Productivity' },
   dueDate: { type: Date },
   progressPercentage: { type: Number, min: 0, max: 100, default: 0 },
-  status: { type: String, enum: ['Not Started', 'On Track', 'Completed'], default: 'Not Started' },
+  status: { type: String, enum: ['Not Started', 'On Track', 'In Progress', 'Under Review', 'Completed', 'Overdue'], default: 'Not Started' },
   approvalStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
   managerComment: { type: String, trim: true, default: '' },
   isLocked: { type: Boolean, default: false },

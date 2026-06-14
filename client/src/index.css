@@ -524,6 +524,35 @@ textarea {
   border-radius: 1.1rem;
 }
 
+.team-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.team-card {
+  display: grid;
+  gap: 1rem;
+  background: var(--surface-strong);
+  border: 1px solid rgba(159, 208, 229, 0.9);
+  border-radius: 1.1rem;
+  padding: 1.2rem;
+}
+
+.member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.chip-action {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 900;
+  margin-left: 0.4rem;
+  padding: 0;
+}
+
 .goal-head {
   display: flex;
   justify-content: space-between;
@@ -615,11 +644,38 @@ td {
   padding: 0.85rem 0;
 }
 
+.portal-footer {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  color: var(--muted);
+  border-top: 1px solid rgba(159, 208, 229, 0.8);
+}
+
+.portal-footer div {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+}
+
+.portal-footer strong {
+  color: var(--accent);
+}
+
+.portal-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
 @media (max-width: 900px) {
   .login-panel,
   .grid-two,
   .stats-grid,
-  .cards-row {
+  .cards-row,
+  .portal-footer {
     grid-template-columns: 1fr;
   }
   .split-title {
