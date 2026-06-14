@@ -209,7 +209,7 @@ const DonutChart = ({ data, title }) => {
       parts.offset = end;
       return parts;
     }, { offset: 0, segments: [] }).segments.join(', ')
-    : '#e5e7eb 0 100%';
+    : '#dbeafe 0 100%';
   return (
     <div className="chart-card">
       <h3>{title}</h3>
@@ -421,9 +421,9 @@ const EmployeeDashboard = ({ user }) => {
   const stats = calculateStats(goals);
   const monthly = groupByMonth(goals);
   const approvalData = [
-    { label: 'Approved', value: stats.approved, color: '#22c55e' },
-    { label: 'Pending', value: stats.approvalPending, color: '#f59e0b' },
-    { label: 'Rejected', value: stats.rejected, color: '#ef4444' }
+    { label: 'Approved', value: stats.approved, color: '#0e7490' },
+    { label: 'Pending', value: stats.approvalPending, color: '#38bdf8' },
+    { label: 'Rejected', value: stats.rejected, color: '#1d4ed8' }
   ];
   const categoryData = groupByKey(goals, 'category', categories);
 
