@@ -34,6 +34,11 @@ export const login = ({ email, password }) => apiFetch('/auth/login', {
   body: JSON.stringify({ email, password })
 });
 
+export const register = ({ name, email, password, role }) => apiFetch('/auth/register', {
+  method: 'POST',
+  body: JSON.stringify({ name, email, password, role })
+});
+
 export const fetchMe = () => apiFetch('/auth/me');
 export const getGoals = () => apiFetch('/goals');
 export const createGoal = (goal) => apiFetch('/goals', { method: 'POST', body: JSON.stringify(goal) });

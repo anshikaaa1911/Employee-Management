@@ -4,6 +4,7 @@ const authController = require('../../controllers/api/authController');
 const { authenticate } = require('../../middleware/authMiddleware');
 const asyncHandler = require('../../utils/asyncHandler');
 
+router.post('/register', asyncHandler(authController.register));
 router.post('/login', asyncHandler(authController.login));
 router.get('/me', authenticate, asyncHandler(authController.getMe));
 

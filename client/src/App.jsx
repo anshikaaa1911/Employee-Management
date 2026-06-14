@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   login,
+  register,
   fetchMe,
   setToken,
   clearToken,
@@ -82,6 +83,7 @@ const App = () => {
       <main className="page-shell">
         <Routes>
           <Route path="/login" element={<LoginPage onLogin={setUser} />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/" element={<RequireAuth user={user}><DashboardPage user={user} /></RequireAuth>} />
           <Route path="/employee" element={<RequireAuth user={user} allowedRoles={[ 'employee', 'admin' ]}><EmployeeGoalsPage user={user} /></RequireAuth>} />
           <Route path="/manager" element={<RequireAuth user={user} allowedRoles={[ 'manager', 'admin' ]}><ManagerPage user={user} /></RequireAuth>} />
@@ -141,6 +143,121 @@ const LoginPage = ({ onLogin }) => {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         <button className="btn-primary" type="submit">Sign In</button>
+        <p className="form-note">
+          New to GoalFlow? <Link to="/register">Create an account</Link>
+        </p>
+      </form>
+    </section>
+  );
+};
+
+const validateRegistration = ({ name, email, password, confirmPassword, role }) => {
+  if (!name.trim() || !email.trim() || !password || !confirmPassword || !role) {
+    return 'Please complete all fields.';
+  }
+  if (name.trim().length < 2 || name.trim().length > 80) {
+    return 'Full name must be between 2 and 80 characters.';
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return 'Enter a valid email address.';
+  }
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+  if (password !== confirmPassword) {
+    return 'Passwords do not match.';
+  }
+  if (!['employee', 'manager'].includes(role)) {
+    return 'Choose Employee or Manager.';
+  }
+  return null;
+};
+
+const RegisterPage = () => {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'employee'
+  });
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const validationError = validateRegistration(form);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await register({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        role: form.role
+      });
+      setSuccess('Account created successfully. Redirecting to sign in...');
+      window.setTimeout(() => navigate('/login'), 900);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="card-panel login-panel">
+      <div className="hero-card">
+        <span className="eyebrow">Join GoalFlow</span>
+        <h1>Create your account</h1>
+        <p>Register as an employee or manager and start tracking goals, progress, and approvals in the same portal.</p>
+      </div>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <h2>Sign up</h2>
+        {error && <div className="alert">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+        <label>
+          Full Name
+          <input value={form.name} onChange={(e) => updateField('name', e.target.value)} required maxLength="80" />
+        </label>
+        <label>
+          Email
+          <input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required />
+        </label>
+        <label>
+          Password
+          <input type="password" value={form.password} onChange={(e) => updateField('password', e.target.value)} required minLength="8" />
+        </label>
+        <label>
+          Confirm Password
+          <input type="password" value={form.confirmPassword} onChange={(e) => updateField('confirmPassword', e.target.value)} required minLength="8" />
+        </label>
+        <label>
+          Role
+          <select value={form.role} onChange={(e) => updateField('role', e.target.value)} required>
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+          </select>
+        </label>
+        <button className="btn-primary" type="submit" disabled={submitting}>
+          {submitting ? 'Creating Account...' : 'Create Account'}
+        </button>
+        <p className="form-note">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
       </form>
     </section>
   );
