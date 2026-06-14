@@ -43,19 +43,30 @@ export const fetchMe = () => apiFetch('/auth/me');
 export const getGoals = () => apiFetch('/goals');
 export const createGoal = (goal) => apiFetch('/goals', { method: 'POST', body: JSON.stringify(goal) });
 export const updateGoal = (id, goal) => apiFetch(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(goal) });
+export const deleteGoal = (id) => apiFetch(`/goals/${id}`, { method: 'DELETE' });
 export const submitGoal = (id) => apiFetch(`/goals/${id}/submit`, { method: 'POST' });
 export const updateAchievement = (id, achievement) => apiFetch(`/goals/${id}/achievement`, { method: 'POST', body: JSON.stringify({ achievement }) });
+export const updateGoalProgress = (id, progressPercentage) => apiFetch(`/goals/${id}/achievement`, { method: 'POST', body: JSON.stringify({ progressPercentage }) });
+export const getGoalActivity = () => apiFetch('/goals/activity');
+export const getNotifications = () => apiFetch('/goals/notifications');
+export const getManagerDashboard = () => apiFetch('/manager/dashboard');
 export const getTeamGoals = () => apiFetch('/manager/team-goals');
 export const approveGoal = (id, comment) => apiFetch(`/manager/goals/${id}/approve`, { method: 'POST', body: JSON.stringify({ managerComment: comment }) });
 export const rejectGoal = (id, comment) => apiFetch(`/manager/goals/${id}/reject`, { method: 'POST', body: JSON.stringify({ managerComment: comment }) });
+export const bulkReviewGoals = ({ goalIds, action, managerComment }) => apiFetch('/manager/goals/bulk-review', { method: 'POST', body: JSON.stringify({ goalIds, action, managerComment }) });
 export const getUsers = () => apiFetch('/admin/users');
 export const getAudit = () => apiFetch('/admin/audit');
 export const unlockGoal = (id) => apiFetch(`/admin/goals/${id}/unlock`, { method: 'POST' });
 export const updateUserRole = (id, role) => apiFetch(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
 export const deleteUser = (id) => apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
-export const downloadReport = async (format) => {
+export const downloadReport = async (format, filters = {}) => {
   const token = getToken();
-  const response = await fetch(`${API_BASE}/reports/${format}`, {
+  const query = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) query.append(key, value);
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const response = await fetch(`${API_BASE}/reports/${format}${suffix}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   if (!response.ok) {

@@ -9,11 +9,17 @@ import {
   getGoals,
   createGoal,
   updateGoal,
+  deleteGoal,
   submitGoal,
   updateAchievement,
+  updateGoalProgress,
+  getGoalActivity,
+  getNotifications,
+  getManagerDashboard,
   getTeamGoals,
   approveGoal,
   rejectGoal,
+  bulkReviewGoals,
   getUsers,
   getAudit,
   unlockGoal,
@@ -33,6 +39,7 @@ const navLinks = [
 const App = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState([]);
   const navigate = useNavigate();
 
   const role = user?.role || 'guest';
@@ -52,6 +59,14 @@ const App = () => {
     clearToken();
     setUser(null);
     navigate('/login');
+  };
+
+  const notify = (type, message) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((items) => [...items, { id, type, message }]);
+    window.setTimeout(() => {
+      setToasts((items) => items.filter((item) => item.id !== id));
+    }, 3600);
   };
 
   if (loading) {
@@ -84,14 +99,15 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage onLogin={setUser} />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/" element={<RequireAuth user={user}><DashboardPage user={user} /></RequireAuth>} />
-          <Route path="/employee" element={<RequireAuth user={user} allowedRoles={[ 'employee', 'admin' ]}><EmployeeGoalsPage user={user} /></RequireAuth>} />
-          <Route path="/manager" element={<RequireAuth user={user} allowedRoles={[ 'manager', 'admin' ]}><ManagerPage user={user} /></RequireAuth>} />
+          <Route path="/" element={<RequireAuth user={user}><DashboardPage user={user} notify={notify} /></RequireAuth>} />
+          <Route path="/employee" element={<RequireAuth user={user} allowedRoles={[ 'employee', 'admin' ]}><EmployeeGoalsPage user={user} notify={notify} /></RequireAuth>} />
+          <Route path="/manager" element={<RequireAuth user={user} allowedRoles={[ 'manager', 'admin' ]}><ManagerPage user={user} notify={notify} /></RequireAuth>} />
           <Route path="/admin" element={<RequireAuth user={user} allowedRoles={[ 'admin' ]}><AdminPage user={user} /></RequireAuth>} />
-          <Route path="/reports" element={<RequireAuth user={user}><ReportsPage user={user} /></RequireAuth>} />
+          <Route path="/reports" element={<RequireAuth user={user}><ReportsPage user={user} notify={notify} /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      <ToastStack toasts={toasts} />
     </div>
   );
 };
@@ -105,6 +121,115 @@ const RequireAuth = ({ user, allowedRoles = [], children }) => {
   }
   return children;
 };
+
+const priorities = ['High', 'Medium', 'Low'];
+const categories = ['Productivity', 'Learning', 'Teamwork', 'Innovation'];
+const statuses = ['Not Started', 'On Track', 'Completed'];
+
+const getProgress = (goal) => Number(goal.progress ?? goal.progressPercentage ?? 0);
+
+const calculateStats = (goals) => {
+  const total = goals.length;
+  const completed = goals.filter((goal) => goal.status === 'Completed').length;
+  const pending = goals.filter((goal) => goal.status !== 'Completed').length;
+  const approved = goals.filter((goal) => goal.approvalStatus === 'Approved').length;
+  const rejected = goals.filter((goal) => goal.approvalStatus === 'Rejected').length;
+  const approvalPending = goals.filter((goal) => goal.approvalStatus === 'Pending').length;
+  const successRate = total ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, pending, approved, rejected, approvalPending, successRate };
+};
+
+const groupByMonth = (goals) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months.map((month, index) => ({
+    label: month,
+    value: goals.filter((goal) => goal.status === 'Completed' && new Date(goal.updatedAt || goal.createdAt).getMonth() === index).length
+  }));
+};
+
+const groupByKey = (goals, key, values) => values.map((value) => ({
+  label: value,
+  value: goals.filter((goal) => goal[key] === value).length
+}));
+
+const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : 'No due date');
+
+const KpiCards = ({ stats, extra = [] }) => (
+  <div className="stats-grid">
+    <div className="stat-card"><span>Total Goals</span><strong>{stats.total}</strong></div>
+    <div className="stat-card"><span>Completed</span><strong>{stats.completed}</strong></div>
+    <div className="stat-card"><span>Pending</span><strong>{stats.pending}</strong></div>
+    <div className="stat-card"><span>Success Rate</span><strong>{stats.successRate}%</strong></div>
+    {extra.map((item) => (
+      <div className="stat-card" key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+    ))}
+  </div>
+);
+
+const EmptyState = ({ title, text }) => (
+  <div className="empty-state">
+    <div className="empty-icon">□</div>
+    <h3>{title}</h3>
+    <p>{text}</p>
+  </div>
+);
+
+const SkeletonBlock = ({ lines = 3 }) => (
+  <div className="skeleton-stack">
+    {Array.from({ length: lines }).map((_, index) => <span className="skeleton-line" key={index} />)}
+  </div>
+);
+
+const BarChart = ({ data, title }) => {
+  const max = Math.max(1, ...data.map((item) => item.value));
+  return (
+    <div className="chart-card">
+      <h3>{title}</h3>
+      {data.some((item) => item.value) ? (
+        <div className="bar-chart">
+          {data.map((item) => (
+            <div className="bar-item" key={item.label}>
+              <div className="bar-track"><span style={{ height: `${(item.value / max) * 100}%` }} /></div>
+              <small>{item.label}</small>
+            </div>
+          ))}
+        </div>
+      ) : <EmptyState title="No chart data" text="Activity will appear once goals start moving." />}
+    </div>
+  );
+};
+
+const DonutChart = ({ data, title }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const gradient = total
+    ? data.reduce((parts, item, index) => {
+      const start = parts.offset;
+      const end = start + (item.value / total) * 100;
+      parts.segments.push(`${item.color} ${start}% ${end}%`);
+      parts.offset = end;
+      return parts;
+    }, { offset: 0, segments: [] }).segments.join(', ')
+    : '#e5e7eb 0 100%';
+  return (
+    <div className="chart-card">
+      <h3>{title}</h3>
+      {total ? (
+        <div className="donut-wrap">
+          <div className="donut" style={{ background: `conic-gradient(${gradient})` }}><strong>{total}</strong></div>
+          <div className="chart-legend">
+            {data.map((item) => <span key={item.label}><i style={{ background: item.color }} />{item.label}: {item.value}</span>)}
+          </div>
+        </div>
+      ) : <EmptyState title="No chart data" text="There is nothing to summarize yet." />}
+    </div>
+  );
+};
+
+const ToastStack = ({ toasts }) => (
+  <div className="toast-stack">
+    {toasts.map((toast) => <div className={`toast ${toast.type}`} key={toast.id}>{toast.message}</div>)}
+  </div>
+);
 
 const LoginPage = ({ onLogin }) => {
   const [email, setEmail] = useState('');
