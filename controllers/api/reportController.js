@@ -7,7 +7,16 @@ const buildReportQuery = async (req) => {
   const scopedQuery = await getScopedGoalQuery(req.user);
   const query = { ...scopedQuery, ...getDateRangeQuery({ from: req.query.from, to: req.query.to }) };
   if (req.query.employeeId) {
-    query.employeeId = req.query.employeeId;
+    if (req.user.role === 'admin') {
+      query.employeeId = req.query.employeeId;
+    } else if (scopedQuery.employeeId?.$in) {
+      const allowedIds = scopedQuery.employeeId.$in.map((id) => id.toString());
+      if (allowedIds.includes(req.query.employeeId)) {
+        query.employeeId = req.query.employeeId;
+      }
+    } else {
+      query.employeeId = scopedQuery.employeeId;
+    }
   }
   if (req.query.category) {
     query.category = req.query.category;
