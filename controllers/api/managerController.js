@@ -25,6 +25,7 @@ exports.teamGoals = async (req, res) => {
 exports.dashboard = async (req, res) => {
   const scopedQuery = await getScopedGoalQuery(req.user);
   const goals = await Goal.find(scopedQuery).populate('employeeId', 'name department managerId').lean();
+  const totalEmployeeCount = await User.countDocuments({ role: 'employee' });
   const employees = req.user.role === 'admin'
     ? await User.find({ role: 'employee' }).select('_id name department').lean()
     : await User.find({ managerId: req.user._id }).select('_id name department').lean();
@@ -32,6 +33,8 @@ exports.dashboard = async (req, res) => {
   const teamPerformanceScore = goals.length ? Math.round((completed / goals.length) * 100) : 0;
   res.json({
     activeEmployeeCount: employees.length,
+    totalEmployeeCount,
+    unassignedEmployeeCount: req.user.role === 'admin' ? await User.countDocuments({ role: 'employee', managerId: { $exists: false } }) : 0,
     pendingApprovalsCount: goals.filter((goal) => goal.approvalStatus === 'Pending').length,
     teamPerformanceScore,
     goals: goals.map((goal) => ({ ...goal, progress: calculateProgress(goal) })),

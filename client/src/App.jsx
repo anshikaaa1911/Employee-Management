@@ -3,6 +3,16 @@ import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   login,
   register,
+  getRegistrationManagers,
+  getTeamOverview,
+  createTeam,
+  updateTeam,
+  deleteTeam,
+  requestTeamJoin,
+  reviewTeamJoinRequest,
+  addTeamMember,
+  removeTeamMember,
+  markTeamNotificationsRead,
   fetchMe,
   setToken,
   clearToken,
@@ -276,7 +286,7 @@ const LoginPage = ({ onLogin }) => {
   );
 };
 
-const validateRegistration = ({ name, email, password, confirmPassword, role }) => {
+const validateRegistration = ({ name, email, password, confirmPassword, role, managerId }) => {
   if (!name.trim() || !email.trim() || !password || !confirmPassword || !role) {
     return 'Please complete all fields.';
   }
@@ -295,6 +305,9 @@ const validateRegistration = ({ name, email, password, confirmPassword, role }) 
   if (!['employee', 'manager'].includes(role)) {
     return 'Choose Employee or Manager.';
   }
+  if (role === 'employee' && !managerId) {
+    return 'Choose your manager/team.';
+  }
   return null;
 };
 
@@ -304,15 +317,37 @@ const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'employee'
+    role: 'employee',
+    managerId: '',
+    teamId: ''
   });
+  const [managers, setManagers] = useState([]);
+  const [managerLoading, setManagerLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    getRegistrationManagers()
+      .then(({ managers: items }) => {
+        setManagers(items || []);
+        if (items?.length) {
+          setForm((current) => current.managerId ? current : { ...current, managerId: items[0]._id, teamId: items[0].teams?.[0]?._id || '' });
+        }
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setManagerLoading(false));
+  }, []);
+
   const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'role' && value === 'manager' ? { managerId: '', teamId: '' } : {}),
+      ...(field === 'role' && value === 'employee' && !current.managerId && managers[0]?._id ? { managerId: managers[0]._id, teamId: managers[0].teams?.[0]?._id || '' } : {}),
+      ...(field === 'managerId' ? { teamId: managers.find((manager) => manager._id === value)?.teams?.[0]?._id || '' } : {})
+    }));
   };
 
   const handleSubmit = async (event) => {
@@ -332,7 +367,9 @@ const RegisterPage = () => {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        role: form.role
+        role: form.role,
+        managerId: form.role === 'employee' ? form.managerId : undefined,
+        teamId: form.role === 'employee' && form.teamId ? form.teamId : undefined
       });
       setSuccess('Account created successfully. Redirecting to sign in...');
       window.setTimeout(() => navigate('/login'), 900);
@@ -377,6 +414,46 @@ const RegisterPage = () => {
             <option value="manager">Manager</option>
           </select>
         </label>
+        {form.role === 'employee' && (
+          <>
+            <label>
+              Manager
+              <select
+                value={form.managerId}
+                onChange={(e) => updateField('managerId', e.target.value)}
+                required
+                disabled={managerLoading || !managers.length}
+              >
+                {managerLoading ? (
+                  <option value="">Loading managers...</option>
+                ) : managers.length ? (
+                  managers.map((manager) => (
+                    <option key={manager._id} value={manager._id}>
+                      {manager.name} - {manager.department || 'General'}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No managers available</option>
+                )}
+              </select>
+            </label>
+            <label>
+              Team
+              <select
+                value={form.teamId}
+                onChange={(e) => updateField('teamId', e.target.value)}
+                disabled={managerLoading || !managers.find((manager) => manager._id === form.managerId)?.teams?.length}
+              >
+                <option value="">Manager default team</option>
+                {managers.find((manager) => manager._id === form.managerId)?.teams?.map((team) => (
+                  <option key={team._id} value={team._id}>
+                    {team.name} - {team.memberCount} members
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         <button className="btn-primary" type="submit" disabled={submitting}>
           {submitting ? 'Creating Account...' : 'Create Account'}
         </button>
@@ -390,7 +467,7 @@ const RegisterPage = () => {
 
 const DashboardPage = ({ user, notify }) => {
   if (user?.role === 'manager' || user?.role === 'admin') {
-    return <ManagerPage notify={notify} compact />;
+    return <ManagerPage user={user} notify={notify} compact />;
   }
   return <EmployeeDashboard user={user} />;
 };
@@ -475,9 +552,330 @@ const EmployeeDashboard = ({ user }) => {
               </div>
             )) : <EmptyState title="No notifications" text="Approval updates and deadline warnings will appear here." />}
           </div>
+          <TeamWorkspace user={user} notify={() => {}} />
         </>
       )}
     </section>
+  );
+};
+
+const emptyTeamForm = { name: '', description: '', status: 'Active' };
+
+const TeamWorkspace = ({ user, notify, compact = false }) => {
+  const [overview, setOverview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [teamForm, setTeamForm] = useState(emptyTeamForm);
+  const [editingTeamId, setEditingTeamId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [requestMessage, setRequestMessage] = useState('');
+
+  const loadOverview = async () => {
+    try {
+      const data = await getTeamOverview();
+      setOverview(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadOverview(); }, []);
+
+  const teams = overview?.teams || [];
+  const employees = overview?.employees || [];
+  const managers = overview?.managers || [];
+  const requests = overview?.requests || [];
+  const notifications = overview?.notifications || [];
+  const activities = overview?.activities || [];
+  const stats = overview?.stats || {};
+  const currentTeam = overview?.currentTeam;
+  const pendingRequests = requests.filter((request) => request.status === 'Pending');
+  const assignedEmployeeIds = new Set(teams.flatMap((team) => team.members.map((member) => member._id)));
+  const availableEmployees = employees.filter((employee) => !assignedEmployeeIds.has(employee._id));
+  const departments = Array.from(new Set(employees.map((employee) => employee.department || 'General')));
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch = `${employee.name} ${employee.email}`.toLowerCase().includes(search.toLowerCase());
+    const matchesDepartment = !departmentFilter || employee.department === departmentFilter;
+    return matchesSearch && matchesDepartment;
+  });
+
+  const submitTeam = async (event) => {
+    event.preventDefault();
+    try {
+      if (editingTeamId) {
+        await updateTeam(editingTeamId, teamForm);
+        notify?.('success', 'Team updated.');
+      } else {
+        await createTeam(teamForm);
+        notify?.('success', 'Team created.');
+      }
+      setTeamForm(emptyTeamForm);
+      setEditingTeamId(null);
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const startTeamEdit = (team) => {
+    setEditingTeamId(team._id);
+    setTeamForm({ name: team.name, description: team.description || '', status: team.status || 'Active' });
+  };
+
+  const handleDeleteTeam = async (teamId) => {
+    if (!window.confirm('Delete this team and remove its member assignments?')) return;
+    try {
+      await deleteTeam(teamId);
+      notify?.('success', 'Team deleted.');
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const handleReviewRequest = async (requestId, action) => {
+    try {
+      await reviewTeamJoinRequest(requestId, { action });
+      notify?.('success', action === 'approve' ? 'Join request approved.' : 'Join request rejected.');
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const handleAddMember = async (teamId, employeeId) => {
+    if (!employeeId) return;
+    try {
+      await addTeamMember(teamId, employeeId);
+      notify?.('success', 'Member added.');
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const handleRemoveMember = async (teamId, employeeId) => {
+    if (!window.confirm('Remove this employee from the team?')) return;
+    try {
+      await removeTeamMember(teamId, employeeId);
+      notify?.('success', 'Member removed.');
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const handleRequestJoin = async (managerId, teamId = '') => {
+    try {
+      await requestTeamJoin({ managerId, teamId, message: requestMessage });
+      setRequestMessage('');
+      notify?.('success', 'Join request sent.');
+      await loadOverview();
+    } catch (err) {
+      setError(err.message);
+      notify?.('error', err.message);
+    }
+  };
+
+  const handleMarkRead = async () => {
+    await markTeamNotificationsRead();
+    await loadOverview();
+  };
+
+  if (loading) return <SkeletonBlock lines={4} />;
+
+  return (
+    <div className="section-block team-workspace">
+      <div className="section-title split-title">
+        <div>
+          <span className="eyebrow">Team Hub</span>
+          <h2>{user?.role === 'employee' ? 'My team workspace' : 'Team management'}</h2>
+          <p>{user?.role === 'employee' ? 'Track your team, manager, requests, directory, and activity.' : 'Create teams, approve join requests, manage members, and watch team analytics.'}</p>
+        </div>
+        <button className="btn-secondary" type="button" onClick={handleMarkRead}>
+          Notifications {overview?.unreadCount || 0}
+        </button>
+      </div>
+      {error && <div className="alert">{error}</div>}
+      <KpiCards stats={{ total: stats.goals || 0, completed: stats.completedGoals || 0, pending: (stats.goals || 0) - (stats.completedGoals || 0), successRate: stats.completionRate || 0 }} extra={[
+        { label: 'Teams', value: stats.teams || 0 },
+        { label: 'Employees', value: stats.employees || 0 },
+        { label: 'Avg Progress', value: `${stats.averageProgress || 0}%` },
+        { label: 'Requests', value: pendingRequests.length }
+      ]} />
+
+      {user?.role === 'employee' ? (
+        <>
+          <div className="grid-two">
+            <div className="team-card">
+              <h3>{currentTeam ? currentTeam.name : 'No team assigned yet'}</h3>
+              {currentTeam ? (
+                <>
+                  <p>{currentTeam.description || 'No description yet.'}</p>
+                  <div className="goal-meta">
+                    <span>Manager: {currentTeam.lead?.name || 'Unassigned'}</span>
+                    <span>{currentTeam.members?.length || 0} members</span>
+                    <span>{currentTeam.status}</span>
+                  </div>
+                  <div className="member-list">
+                    {currentTeam.members.map((member) => <span className="badge approved" key={member._id}>{member.name}</span>)}
+                  </div>
+                </>
+              ) : <p>Select a manager/team below and send a join request.</p>}
+            </div>
+            <div className="panel-form">
+              <h3>Pending requests</h3>
+              {pendingRequests.length ? pendingRequests.map((request) => (
+                <div className="notification-card" key={request._id}>
+                  <strong>{request.managerId?.name}</strong>
+                  <p>{request.teamId?.name || 'Manager default team'} - {request.status}</p>
+                </div>
+              )) : <EmptyState title="No pending requests" text="Requests you send to managers will appear here." />}
+            </div>
+          </div>
+          <div className="panel-form">
+            <h3>Manager directory</h3>
+            <input value={requestMessage} onChange={(e) => setRequestMessage(e.target.value)} placeholder="Optional request message" />
+            <div className="grid-cards">
+              {managers.map((manager) => (
+                <div className="team-card" key={manager._id}>
+                  <h3>{manager.name}</h3>
+                  <p>{manager.department || 'General'} department</p>
+                  <div className="goal-actions">
+                    <button className="btn-primary" disabled={!!currentTeam || pendingRequests.length > 0} onClick={() => handleRequestJoin(manager._id)}>
+                      Request Manager
+                    </button>
+                  </div>
+                  {(manager.teams || []).map((team) => (
+                    <div className="notification-card" key={team._id}>
+                      <strong>{team.name}</strong>
+                      <p>{team.memberCount || 0} members</p>
+                      <button className="btn-secondary" disabled={!!currentTeam || pendingRequests.length > 0} onClick={() => handleRequestJoin(manager._id, team._id)}>Request Team</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <form className="panel-form" onSubmit={submitTeam}>
+            <h3>{editingTeamId ? 'Edit team' : 'Create team'}</h3>
+            <div className="form-row">
+              <label>Name<input value={teamForm.name} onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })} required /></label>
+              <label>Status<select value={teamForm.status} onChange={(e) => setTeamForm({ ...teamForm, status: e.target.value })}>
+                <option value="Active">Active</option>
+                <option value="Archived">Archived</option>
+              </select></label>
+            </div>
+            <label>Description<textarea value={teamForm.description} onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })} /></label>
+            <div className="goal-actions">
+              <button className="btn-primary" type="submit">{editingTeamId ? 'Save Team' : 'Create Team'}</button>
+              {editingTeamId && <button className="btn-secondary" type="button" onClick={() => { setEditingTeamId(null); setTeamForm(emptyTeamForm); }}>Cancel</button>}
+            </div>
+          </form>
+          <div className="grid-two">
+            <div className="panel-form">
+              <h3>Join requests</h3>
+              {pendingRequests.length ? pendingRequests.map((request) => (
+                <div className="notification-card" key={request._id}>
+                  <strong>{request.employeeId?.name}</strong>
+                  <p>{request.teamId?.name || 'Default team'} - {request.message || 'No message'}</p>
+                  <div className="goal-actions">
+                    <button className="btn-secondary" onClick={() => handleReviewRequest(request._id, 'reject')}>Reject</button>
+                    <button className="btn-primary" onClick={() => handleReviewRequest(request._id, 'approve')}>Approve</button>
+                  </div>
+                </div>
+              )) : <EmptyState title="No pending requests" text="Employee join requests will appear here." />}
+            </div>
+            <div className="panel-form">
+              <h3>Employee directory</h3>
+              <div className="filter-bar">
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employees" />
+                <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+                  <option value="">All departments</option>
+                  {departments.map((department) => <option key={department} value={department}>{department}</option>)}
+                </select>
+              </div>
+              <div className="table-shell">
+                <table>
+                  <thead><tr><th>Name</th><th>Department</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {filteredEmployees.slice(0, 12).map((employee) => (
+                      <tr key={employee._id}><td>{employee.name}</td><td>{employee.department || 'General'}</td><td>{assignedEmployeeIds.has(employee._id) ? 'Assigned' : 'Available'}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div className="grid-cards">
+            {teams.map((team) => (
+              <div className="team-card" key={team._id}>
+                <div className="goal-head">
+                  <h3>{team.name}</h3>
+                  <span className={`badge ${team.status === 'Active' ? 'approved' : 'pending'}`}>{team.status}</span>
+                </div>
+                <p>{team.description || 'No description yet.'}</p>
+                <div className="goal-meta">
+                  <span>{team.members.length} members</span>
+                  <span>Lead: {team.lead?.name || 'Manager'}</span>
+                </div>
+                <label>Add member<select onChange={(e) => handleAddMember(team._id, e.target.value)} value="">
+                  <option value="">Choose available employee</option>
+                  {availableEmployees.map((employee) => <option key={employee._id} value={employee._id}>{employee.name}</option>)}
+                </select></label>
+                <div className="member-list">
+                  {team.members.map((member) => (
+                    <span className="badge approved" key={member._id}>
+                      {member.name}
+                      <button className="chip-action" onClick={() => handleRemoveMember(team._id, member._id)} type="button">x</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="goal-actions">
+                  <button className="btn-secondary" onClick={() => startTeamEdit(team)}>Edit</button>
+                  <button className="btn-secondary" onClick={() => handleDeleteTeam(team._id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {!compact && (
+        <div className="grid-two">
+          <div className="panel-form">
+            <h3>Activity feed</h3>
+            {activities.length ? activities.slice(0, 10).map((activity) => (
+              <div className="timeline-item" key={activity._id}>
+                <strong>{activity.action}</strong>
+                <span>{activity.message}</span>
+              </div>
+            )) : <EmptyState title="No team activity" text="Team joins, removals, and updates will appear here." />}
+          </div>
+          <div className="panel-form">
+            <h3>Notifications</h3>
+            {notifications.length ? notifications.slice(0, 10).map((notification) => (
+              <div className="notification-card" key={notification._id}>
+                <strong>{notification.type}</strong>
+                <p>{notification.message}</p>
+              </div>
+            )) : <EmptyState title="No notifications" text="Join approvals, assignments, and announcements will appear here." />}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -676,7 +1074,7 @@ const EmployeeGoalsPage = ({ notify }) => {
   );
 };
 
-const ManagerPage = ({ notify, compact = false }) => {
+const ManagerPage = ({ user, notify, compact = false }) => {
   const [goals, setGoals] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -769,6 +1167,14 @@ const ManagerPage = ({ notify, compact = false }) => {
   const departmentData = groupByKey(goals, 'status', statuses);
   const trendData = groupByMonth(goals);
   const comparisonData = rankedEmployees.map((row) => ({ label: row.name.split(' ')[0], value: row.rate }));
+  const managerExtras = [
+    { label: user?.role === 'admin' ? 'Active Employees' : 'Team Employees', value: summary?.activeEmployeeCount || 0 },
+    { label: 'Total Employees', value: summary?.totalEmployeeCount || 0 },
+    { label: 'Pending Approvals', value: summary?.pendingApprovalsCount || 0 }
+  ];
+  if (user?.role === 'admin') {
+    managerExtras.splice(2, 0, { label: 'Unassigned Employees', value: summary?.unassignedEmployeeCount || 0 });
+  }
 
   return (
     <section className="card-panel">
@@ -780,10 +1186,7 @@ const ManagerPage = ({ notify, compact = false }) => {
       {error && <div className="alert">{error}</div>}
       {loading ? <SkeletonBlock lines={6} /> : (
         <>
-          <KpiCards stats={stats} extra={[
-            { label: 'Active Employees', value: summary?.activeEmployeeCount || 0 },
-            { label: 'Pending Approvals', value: summary?.pendingApprovalsCount || 0 }
-          ]} />
+          <KpiCards stats={stats} extra={managerExtras} />
           {!compact && (
             <div className="grid-two">
               <BarChart title="Department performance overview" data={departmentData} />

@@ -15,7 +15,13 @@ const connectToMongo = async (uri) => {
 const shouldAllowMemoryDb = () => process.env.ALLOW_MEMORY_DB === 'true';
 
 module.exports = async function connectDb() {
-  const envUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/employee_goal_portal';
+  if (process.env.MONGO_URI) {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB connected');
+    return { uri: process.env.MONGO_URI, mode: 'configured' };
+  }
+
+  const envUri = 'mongodb://127.0.0.1:27017/employee_goal_portal';
   try {
     await connectToMongo(envUri);
     console.log('MongoDB connected');

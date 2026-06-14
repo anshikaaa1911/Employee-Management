@@ -34,12 +34,22 @@ export const login = ({ email, password }) => apiFetch('/auth/login', {
   body: JSON.stringify({ email, password })
 });
 
-export const register = ({ name, email, password, role }) => apiFetch('/auth/register', {
+export const register = ({ name, email, password, role, managerId, teamId }) => apiFetch('/auth/register', {
   method: 'POST',
-  body: JSON.stringify({ name, email, password, role })
+  body: JSON.stringify({ name, email, password, role, managerId, teamId })
 });
 
 export const fetchMe = () => apiFetch('/auth/me');
+export const getRegistrationManagers = () => apiFetch('/auth/managers');
+export const getTeamOverview = () => apiFetch('/teams/overview');
+export const createTeam = (team) => apiFetch('/teams', { method: 'POST', body: JSON.stringify(team) });
+export const updateTeam = (id, team) => apiFetch(`/teams/${id}`, { method: 'PUT', body: JSON.stringify(team) });
+export const deleteTeam = (id) => apiFetch(`/teams/${id}`, { method: 'DELETE' });
+export const requestTeamJoin = (payload) => apiFetch('/teams/join-requests', { method: 'POST', body: JSON.stringify(payload) });
+export const reviewTeamJoinRequest = (id, payload) => apiFetch(`/teams/join-requests/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+export const addTeamMember = (teamId, employeeId) => apiFetch(`/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify({ employeeId }) });
+export const removeTeamMember = (teamId, employeeId) => apiFetch(`/teams/${teamId}/members/${employeeId}`, { method: 'DELETE' });
+export const markTeamNotificationsRead = () => apiFetch('/teams/notifications/read', { method: 'PUT' });
 export const getGoals = () => apiFetch('/goals');
 export const createGoal = (goal) => apiFetch('/goals', { method: 'POST', body: JSON.stringify(goal) });
 export const updateGoal = (id, goal) => apiFetch(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(goal) });

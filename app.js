@@ -13,6 +13,7 @@ const authRoutes = require('./routes/api/authRoutes');
 const goalRoutes = require('./routes/api/goalRoutes');
 const managerRoutes = require('./routes/api/managerRoutes');
 const adminRoutes = require('./routes/api/adminRoutes');
+const teamRoutes = require('./routes/api/teamRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ const initializeApp = async () => {
   app.use('/api/goals', goalRoutes);
   app.use('/api/manager', managerRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/teams', teamRoutes);
   app.use('/api/reports', require('./routes/api/reportRoutes'));
 
   app.get('/health', (req, res) => {
