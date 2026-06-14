@@ -143,8 +143,8 @@ const LoginPage = ({ onLogin }) => {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         <button className="btn-primary" type="submit">Sign In</button>
-        <p className="form-note">
-          New to GoalFlow? <Link to="/register">Create an account</Link>
+        <p className="auth-switch">
+          Don't have an account? <Link to="/register">Create Account</Link>
         </p>
       </form>
     </section>
@@ -255,7 +255,7 @@ const RegisterPage = () => {
         <button className="btn-primary" type="submit" disabled={submitting}>
           {submitting ? 'Creating Account...' : 'Create Account'}
         </button>
-        <p className="form-note">
+        <p className="auth-switch">
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>

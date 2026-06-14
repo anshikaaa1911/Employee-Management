@@ -184,13 +184,14 @@ textarea {
   color: #166534;
 }
 
-.form-note {
+.auth-switch {
   margin: 0;
   color: var(--muted);
   font-size: 0.95rem;
+  text-align: center;
 }
 
-.form-note a {
+.auth-switch a {
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
