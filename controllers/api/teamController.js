@@ -22,6 +22,14 @@ const logActivity = async ({ teamId, actorId, employeeId, action, message }) => 
   return TeamActivity.create({ teamId, actorId, employeeId, action, message });
 };
 
+const safeSideEffect = async (task) => {
+  try {
+    await task();
+  } catch (error) {
+    console.error('Team side-effect failed:', error.message);
+  }
+};
+
 const getEmployeeTeam = async (employeeId) => {
   return Team.findOne({ members: employeeId })
     .populate('lead', 'name email role department')
@@ -117,8 +125,8 @@ exports.createTeam = async (req, res) => {
     members: [],
     status: req.body.status === 'Archived' ? 'Archived' : 'Active'
   });
-  await logActivity({ teamId: team._id, actorId: req.user._id, action: 'Team created', message: `${name} was created.` });
-  await AuditLog.create({ userId: req.user._id, action: 'Created team', oldValue: null, newValue: team.toObject() });
+  await safeSideEffect(() => logActivity({ teamId: team._id, actorId: req.user._id, action: 'Team created', message: `${name} was created.` }));
+  await safeSideEffect(() => AuditLog.create({ userId: req.user._id, action: 'Created team', oldValue: null, newValue: team.toObject() }));
   res.status(201).json({ team });
 };
 
@@ -133,8 +141,8 @@ exports.updateTeam = async (req, res) => {
   team.description = clean(req.body.description);
   if (['Active', 'Archived'].includes(req.body.status)) team.status = req.body.status;
   await team.save();
-  await logActivity({ teamId: team._id, actorId: req.user._id, action: 'Team updated', message: `${team.name} was updated.` });
-  await AuditLog.create({ userId: req.user._id, action: 'Updated team', oldValue, newValue: team.toObject() });
+  await safeSideEffect(() => logActivity({ teamId: team._id, actorId: req.user._id, action: 'Team updated', message: `${team.name} was updated.` }));
+  await safeSideEffect(() => AuditLog.create({ userId: req.user._id, action: 'Updated team', oldValue, newValue: team.toObject() }));
   res.json({ team });
 };
 
@@ -147,8 +155,8 @@ exports.deleteTeam = async (req, res) => {
   await User.updateMany({ _id: { $in: team.members } }, { $unset: { managerId: '' } });
   await JoinRequest.updateMany({ teamId: team._id, status: 'Pending' }, { status: 'Cancelled' });
   await Team.findByIdAndDelete(team._id);
-  await logActivity({ actorId: req.user._id, action: 'Team deleted', message: `${team.name} was deleted.` });
-  await AuditLog.create({ userId: req.user._id, action: 'Deleted team', oldValue, newValue: null });
+  await safeSideEffect(() => logActivity({ actorId: req.user._id, action: 'Team deleted', message: `${team.name} was deleted.` }));
+  await safeSideEffect(() => AuditLog.create({ userId: req.user._id, action: 'Deleted team', oldValue, newValue: null }));
   res.json({ success: true });
 };
 
@@ -186,14 +194,14 @@ exports.requestJoin = async (req, res) => {
     teamId: team?._id,
     message: clean(req.body.message)
   });
-  await notify({
+  await safeSideEffect(() => notify({
     recipientId: managerId,
     actorId: req.user._id,
     type: 'Join request',
     message: `${req.user.name} requested to join ${team?.name || 'your team'}.`,
     metadata: { requestId: request._id, teamId: team?._id }
-  });
-  await logActivity({ teamId: team?._id, actorId: req.user._id, employeeId: req.user._id, action: 'Join requested', message: `${req.user.name} sent a join request.` });
+  }));
+  await safeSideEffect(() => logActivity({ teamId: team?._id, actorId: req.user._id, employeeId: req.user._id, action: 'Join requested', message: `${req.user.name} sent a join request.` }));
   res.status(201).json({ request });
 };
 
@@ -215,8 +223,8 @@ exports.reviewJoinRequest = async (req, res) => {
     request.status = 'Rejected';
     request.responseMessage = clean(req.body.responseMessage);
     await request.save();
-    await notify({ recipientId: employeeId, actorId: req.user._id, type: 'Join rejected', message: `${req.user.name} rejected your team request.` });
-    await logActivity({ teamId: request.teamId?._id, actorId: req.user._id, employeeId, action: 'Join rejected', message: `${request.employeeId.name}'s join request was rejected.` });
+    await safeSideEffect(() => notify({ recipientId: employeeId, actorId: req.user._id, type: 'Join rejected', message: `${req.user.name} rejected your team request.` }));
+    await safeSideEffect(() => logActivity({ teamId: request.teamId?._id, actorId: req.user._id, employeeId, action: 'Join rejected', message: `${request.employeeId.name}'s join request was rejected.` }));
     return res.json({ request });
   }
 
@@ -246,8 +254,8 @@ exports.reviewJoinRequest = async (req, res) => {
   request.teamId = team._id;
   request.responseMessage = clean(req.body.responseMessage);
   await request.save();
-  await notify({ recipientId: employeeId, actorId: req.user._id, type: 'Join approved', message: `You joined ${team.name}.`, metadata: { teamId: team._id } });
-  await logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member joined', message: `${request.employeeId.name} joined ${team.name}.` });
+  await safeSideEffect(() => notify({ recipientId: employeeId, actorId: req.user._id, type: 'Join approved', message: `You joined ${team.name}.`, metadata: { teamId: team._id } }));
+  await safeSideEffect(() => logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member joined', message: `${request.employeeId.name} joined ${team.name}.` }));
   res.json({ request, team });
 };
 
@@ -263,8 +271,8 @@ exports.addMember = async (req, res) => {
   team.members.push(employeeId);
   await team.save();
   await User.findByIdAndUpdate(employeeId, { managerId: team.lead });
-  await notify({ recipientId: employeeId, actorId: req.user._id, type: 'Team assignment', message: `You were added to ${team.name}.`, metadata: { teamId: team._id } });
-  await logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member added', message: `${employee.name} was added to ${team.name}.` });
+  await safeSideEffect(() => notify({ recipientId: employeeId, actorId: req.user._id, type: 'Team assignment', message: `You were added to ${team.name}.`, metadata: { teamId: team._id } }));
+  await safeSideEffect(() => logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member added', message: `${employee.name} was added to ${team.name}.` }));
   res.json({ team });
 };
 
@@ -275,8 +283,8 @@ exports.removeMember = async (req, res) => {
   team.members = team.members.filter((member) => member.toString() !== employeeId);
   await team.save();
   await User.findByIdAndUpdate(employeeId, { $unset: { managerId: '' } });
-  await notify({ recipientId: employeeId, actorId: req.user._id, type: 'Team removal', message: `You were removed from ${team.name}.`, metadata: { teamId: team._id } });
-  await logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member removed', message: `A member was removed from ${team.name}.` });
+  await safeSideEffect(() => notify({ recipientId: employeeId, actorId: req.user._id, type: 'Team removal', message: `You were removed from ${team.name}.`, metadata: { teamId: team._id } }));
+  await safeSideEffect(() => logActivity({ teamId: team._id, actorId: req.user._id, employeeId, action: 'Member removed', message: `A member was removed from ${team.name}.` }));
   res.json({ team });
 };
 

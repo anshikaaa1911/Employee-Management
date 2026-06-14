@@ -54,7 +54,13 @@ const initializeApp = async () => {
 
   app.use('/api', (err, req, res, next) => {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    if (err.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid request identifier.' });
+    }
+    res.status(err.status || 500).json({ error: err.message || 'Something went wrong.' });
   });
 
   console.log(`Serving frontend from ${clientDist}`);
