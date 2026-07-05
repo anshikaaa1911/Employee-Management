@@ -1,160 +1,152 @@
 # GoalFlow – Employee Goal Portal
 
-GoalFlow is a full-stack employee performance and goal management platform designed to help organizations streamline goal planning, tracking, approvals, and reporting through role-based workflows.
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-Backend-000000?style=flat&logo=express&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange?style=flat)
+![Render](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
-The application enables Employees, Managers, and Administrators to collaborate effectively while maintaining transparency, accountability, and performance visibility across teams.
+GoalFlow is a full-stack employee performance and goal management app built with the MERN stack. It lets employees create and track goals, managers review and approve them, and admins get an overview of how teams are performing.
+
+---
 
 ## Live Demo
 
-https://employee-management-0cu9.onrender.com/
+[employee-management-0cu9.onrender.com](https://employee-management-0cu9.onrender.com/)
 
 ---
 
 ## Overview
 
-GoalFlow provides a centralized system where employees can create and track goals, managers can review and approve submissions, and administrators can oversee organizational performance through reports and analytics.
-
-The platform is built using a modern MERN architecture and supports secure authentication, team management, reporting, audit logging, and data export capabilities.
+GoalFlow gives employees a place to set and track their goals, gives managers a way to review and approve what their team submits, and gives admins visibility into overall performance through reports. It supports authentication, team management, reporting, audit logs, and exporting data.
 
 ---
 
-## Key Features
+## Features
 
-### Authentication & Authorization
+**Auth**
+- JWT-based login
+- Role-based access (Employee / Manager / Admin)
+- Separate dashboards per role
+- Protected routes and API endpoints
 
-* Secure JWT-based authentication
-* Role-based access control
-* Employee, Manager, and Admin dashboards
-* Protected routes and API endpoints
+**Goals**
+- Create, edit, and submit goals
+- Managers approve or reject submissions
+- Track progress and completion status
+- View past achievements
 
-### Goal Management
+**Teams**
+- Manager-led team setup
+- Team activity tracking
+- Basic performance oversight
 
-* Create and manage professional goals
-* Submit goals for manager review
-* Approve or reject goal submissions
-* Track goal progress and completion status
-* Monitor achievement history
+**Reports**
+- Dashboard with goal performance data
+- Audit logs / activity history
+- Export to CSV or Excel
 
-### Team Management
+**Frontend**
+- Built with React, responsive layout
+- Works fine on mobile
+- Single-page app, no full page reloads
 
-* Manager-led team workflows
-* Team activity tracking
-* Employee performance oversight
-* Team collaboration support
-
-### Reporting & Analytics
-
-* Real-time reporting dashboard
-* Goal performance insights
-* Audit logs and activity history
-* Export reports in CSV and Excel formats
-
-### User Experience
-
-* Responsive React-based interface
-* Mobile-friendly design
-* Modern and intuitive UI
-* Fast single-page application experience
-
-### Reliability
-
-* MongoDB Atlas integration
-* Mongoose data modeling
-* In-memory demo mode fallback
-* Production deployment on Render
+**Backend/DB**
+- MongoDB Atlas
+- Mongoose models
+- In-memory fallback mode for demo purposes
+- Deployed on Render
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-### Frontend
-
-* React
-* Vite
-* Modern CSS
-
-### Backend
-
-* Node.js
-* Express.js
-
-### Database
-
-* MongoDB Atlas
-* Mongoose
-
-### Authentication
-
-* JSON Web Tokens (JWT)
-* bcryptjs
-
-### Reporting & Export
-
-* ExcelJS
-* json2csv
-
-### Deployment
-
-* Render
+- **Frontend:** React, Vite, plain CSS
+- **Backend:** Node.js, Express
+- **Database:** MongoDB Atlas + Mongoose
+- **Auth:** JWT, bcryptjs
+- **Exports:** ExcelJS, json2csv
+- **Hosting:** Render
 
 ---
 
 ## Architecture
 
-### Backend Structure
+Backend is split into a few modules:
+- Auth
+- Goals
+- Manager operations
+- Admin operations
+- Teams
+- Reporting
 
-* Authentication Module
-* Goal Management Module
-* Manager Operations Module
-* Admin Operations Module
-* Team Management Module
-* Reporting Module
+Database models: User, Goal, Team, Notification, AuditLog, JoinRequest, TeamActivity
 
-### Database Models
+Passwords are hashed with bcrypt, routes are protected with JWT, and access is gated by role.
 
-* User
-* Goal
-* Team
-* Notification
-* AuditLog
-* JoinRequest
-* TeamActivity
 
-### Security Features
+## Running Locally
 
-* Password hashing with bcrypt
-* JWT authentication
-* Protected API routes
-* Role-based authorization
+git clone https://github.com/your-username/goalflow.git
+cd goalflow
 
-## Learning Outcomes
+Install deps for both sides:
 
-This project provided practical experience in:
+cd server && npm install
+cd ../client && npm install
 
-* Full-Stack MERN Development
-* REST API Design
-* Authentication & Authorization
-* Database Design and Modeling
-* Role-Based Access Control
-* Cloud Deployment
-* Production Application Development
+
+Add a `.env` file inside `/server`:
+
+MONGO_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_jwt_secret
+PORT=5000
+
+Then run both:
+
+# server
+npm run dev
+
+# client (separate terminal)
+npm run dev
+
+App runs on `http://localhost:5173` by default.
+
+
+## Folder Structure
+
+
+├── client/          # React frontend
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── services/
+│   └── package.json
+├── server/          # Express backend
+│   ├── models/
+│   ├── routes/
+│   ├── controllers/
+│   ├── middleware/
+│   └── package.json
+└── README.md
+
+
+## What I learned building this
+
+- Building a full app end to end with MERN
+- Designing REST APIs
+- Auth and role-based permissions
+- Structuring a MongoDB schema for a real app
+- Deploying to Render
 
 ---
 
-## Future Enhancements
+## Things I'd add later
 
-* Goal recommendation system
-* Performance analytics dashboard
-* Email notifications
-* Team productivity insights
-* Advanced reporting and visualization
-* Registration and onboarding workflows
-
----
-
-## Author
-
-Developed as a full-stack web application project to explore scalable employee performance management systems using the MERN stack.
-
-email: employee@test.com
-password: 123456
+- Goal recommendations
+- A better analytics dashboard
+- Email notifications
+- Team productivity stats
+- Better charts/reporting
+- A proper signup/onboarding flow
